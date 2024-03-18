@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 	"os"
@@ -29,7 +30,7 @@ func main() {
 	ctx := context.Background()
 
 	db := initDB(ctx)
-	limiter, err := initFlags()
+	limiter, err := initFlags(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -42,7 +43,7 @@ func main() {
 }
 
 // initFlags get command and flags from std input to create a golim or role
-func initFlags() (*golim, error) {
+func initFlags(ctx context.Context) (*golim, error) {
 	golim := newLimiter()
 
 	rootFlags := ff.NewFlagSet("golim")
@@ -50,6 +51,9 @@ func initFlags() (*golim, error) {
 		Name:  "golim",
 		Usage: "golim [COMMANDS] <FLAGS>",
 		Flags: rootFlags,
+		Exec: func(ctx context.Context, args []string) error {
+			return nil
+		},
 	}
 
 	helpCMD := golim.createHelpCMD()
@@ -60,7 +64,7 @@ func initFlags() (*golim, error) {
 	removeLimiterCMD := golim.createRemoveCMD()
 
 	rootCmd.Subcommands = []*ff.Command{helpCMD, initCMD, addCMD, removeCMD, getCMD, removeLimiterCMD}
-	if err := rootCmd.Parse(os.Args[1:]); err != nil {
+	if err := rootCmd.ParseAndRun(ctx, os.Args[1:]); err != nil {
 		return nil, fmt.Errorf("%s\n%s", ffhelp.Command(rootCmd), err)
 	}
 

@@ -1,5 +1,5 @@
 CREATE TABLE role (
-                         id                 INTEGER PRIMARY KEY AUTO_INCREMENT,
+                         id                 INTEGER PRIMARY KEY AUTOINCREMENT,
                          endpoint           varchar(255)      NOT NULL,
                          operation          varchar(255) NOT NULL,
                          bucket_size        INTEGER NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE role (
 
 
 CREATE TABLE rate_limiter (
-                      id                 INTEGER PRIMARY KEY AUTO_INCREMENT,
+                      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
                       name               varchar(255)      NOT NULL,
                       created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                       updated_at         TIMESTAMP,

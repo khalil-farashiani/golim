@@ -10,7 +10,7 @@ import (
 )
 
 type RateLimiter struct {
-	ID        interface{}
+	ID        int64
 	Name      string
 	CreatedAt time.Time
 	UpdatedAt sql.NullTime
@@ -18,7 +18,7 @@ type RateLimiter struct {
 }
 
 type Role struct {
-	ID             interface{}
+	ID             int64
 	Endpoint       string
 	Operation      string
 	BucketSize     int64
