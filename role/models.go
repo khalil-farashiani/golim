@@ -2,21 +2,30 @@
 // versions:
 //   sqlc v1.25.0
 
-package sqlc
+package role
 
 import (
 	"database/sql"
 	"time"
 )
 
+type RateLimiter struct {
+	ID        interface{}
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt sql.NullTime
+	DeletedAt sql.NullTime
+}
+
 type Role struct {
 	ID             interface{}
 	Endpoint       string
 	Operation      string
 	BucketSize     int64
-	AddTokenPerSec int64
-	InitialTokens  int64
 	CreatedAt      time.Time
+	AddTokenPerMin int64
+	InitialTokens  int64
 	UpdatedAt      sql.NullTime
 	DeletedAt      sql.NullTime
+	RateLimiterID  int64
 }

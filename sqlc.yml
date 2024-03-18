@@ -5,5 +5,5 @@ sql:
     schema: "schema.sql"
     gen:
       go:
-        package: "sqlc"
-        out: "sqlc"
+        package: "role"
+        out: "role"
