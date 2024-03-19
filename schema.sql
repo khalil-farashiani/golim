@@ -10,7 +10,9 @@ CREATE TABLE role (
                          deleted_at         TIMESTAMP,
                          rate_limiter_id    INTEGER NOT NULL,
                          FOREIGN KEY (rate_limiter_id)
-                             REFERENCES rate_limiter (id)
+                             REFERENCES rate_limiter (id),
+                         CONSTRAINT endpoint_operation_unique
+                             UNIQUE (endpoint, operation) ON CONFLICT REPLACE
 );
 
 
@@ -19,5 +21,6 @@ CREATE TABLE rate_limiter (
                       name               varchar(255)      NOT NULL,
                       created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                       updated_at         TIMESTAMP,
-                      deleted_at         TIMESTAMP
+                      deleted_at         TIMESTAMP,
+                      CONSTRAINT name_unique UNIQUE (name)
 );

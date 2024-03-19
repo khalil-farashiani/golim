@@ -79,6 +79,28 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, e
 	return i, err
 }
 
+const deleteRateLimiter = `-- name: DeleteRateLimiter :exec
+UPDATE rate_limiter
+    SET deleted_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+`
+
+func (q *Queries) DeleteRateLimiter(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteRateLimiter, id)
+	return err
+}
+
+const deleteRole = `-- name: DeleteRole :exec
+UPDATE role
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = ?
+`
+
+func (q *Queries) DeleteRole(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteRole, id)
+	return err
+}
+
 const getRateLimiters = `-- name: GetRateLimiters :many
 SELECT id, name, created_at, updated_at, deleted_at FROM rate_limiter
 WHERE deleted_at = null

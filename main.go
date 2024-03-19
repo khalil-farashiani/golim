@@ -9,18 +9,19 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 	"os"
+	"strings"
 )
 
 //go:embed schema.sql
 var ddl string
 
 func initDB(ctx context.Context) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", "golim.sqlite")
 	if err != nil {
 		panic(err)
 	}
 	// create tables
-	if _, err := db.ExecContext(ctx, ddl); err != nil {
+	if _, err := db.ExecContext(ctx, ddl); err != nil && !strings.Contains(err.Error(), "already exists") {
 		panic(err)
 	}
 	return db
@@ -35,11 +36,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	err = limiter.ExecCMD(ctx, db)
+	data, err := limiter.ExecCMD(ctx, db)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+	if data != nil {
+		fmt.Fprintf(os.Stdout, "%v", data)
+		return
+	}
+	fmt.Printf("%s", "DONE")
 }
 
 // initFlags get command and flags from std input to create a golim or role

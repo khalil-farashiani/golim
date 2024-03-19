@@ -16,6 +16,12 @@ INSERT INTO role (
     RETURNING *;
 
 
+-- name: DeleteRole :exec
+UPDATE role
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = ?;
+
+
 -- name: GetRateLimiters :many
 SELECT * FROM rate_limiter
 WHERE deleted_at = null;
@@ -28,3 +34,8 @@ INSERT INTO rate_limiter (
              ?
          )
     RETURNING *;
+
+-- name: DeleteRateLimiter :exec
+UPDATE rate_limiter
+    SET deleted_at = CURRENT_TIMESTAMP
+    WHERE id = ?;
