@@ -18,4 +18,5 @@ all dependencies automatically resolve
 - [x] add roles logic to project
 - [ ] implement bucket algorithm
 - [ ] add cli version
-- [ ] add ui version
+- [ ] add tests
+- [ ] add ui version (V2)
