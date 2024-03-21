@@ -11,6 +11,7 @@ all dependencies automatically resolve
 - sqlc (as query builder)
 - redis-go
 - ff cli
+- 
 
 ## TODO (Golim v1):
 - [x] initial the project
@@ -19,4 +20,5 @@ all dependencies automatically resolve
 - [ ] implement bucket algorithm
 - [ ] add cli version
 - [ ] add tests
-- [ ] add ui version (V2)
+- [ ] add redis
+- [ ] add default limiter, regex, ui version and ... (V2)
