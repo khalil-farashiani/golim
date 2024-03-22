@@ -31,21 +31,23 @@ func main() {
 	ctx := context.Background()
 
 	db := initDB(ctx)
+	cache := initRedis()
 	limiter, err := initFlags(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	data, err := limiter.ExecCMD(ctx, db)
+	data, err := limiter.ExecCMD(ctx, db, cache)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	if data != nil {
-		fmt.Fprintf(os.Stdout, "%v", data)
+		makeTable(toSlice(data))
+		fmt.Fprintf(os.Stdout, "DONE")
 		return
 	}
-	fmt.Printf("%s", "DONE")
+	fmt.Printf("DONE")
 }
 
 // initFlags get command and flags from std input to create a golim or role
@@ -68,8 +70,9 @@ func initFlags(ctx context.Context) (*golim, error) {
 	removeCMD := golim.createRemoveCMD()
 	getCMD := golim.createGetRolesCMD()
 	removeLimiterCMD := golim.createRemoveCMD()
+	runCMD := golim.createRunCMD()
 
-	rootCmd.Subcommands = []*ff.Command{helpCMD, initCMD, addCMD, removeCMD, getCMD, removeLimiterCMD}
+	rootCmd.Subcommands = []*ff.Command{helpCMD, initCMD, addCMD, removeCMD, getCMD, removeLimiterCMD, runCMD}
 	if err := rootCmd.ParseAndRun(ctx, os.Args[1:]); err != nil {
 		return nil, fmt.Errorf("%s\n%s", ffhelp.Command(rootCmd), err)
 	}
