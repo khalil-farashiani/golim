@@ -51,7 +51,7 @@ func (g *golim) getRole(ctx context.Context, db *sql.DB, cache *cache) (role.Get
 		return role.GetRoleRow{}, err
 	}
 	go func() {
-		cache.setLimiter(ctx, params, &row)
+		cache.setLimiter(ctx, &params, &row)
 	}()
 	return row, nil
 }
