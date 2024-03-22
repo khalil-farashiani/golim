@@ -6,15 +6,13 @@ package role
 
 import (
 	"database/sql"
-	"time"
 )
 
 type RateLimiter struct {
-	ID        int64
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt sql.NullTime
-	DeletedAt sql.NullTime
+	ID          int64
+	Name        string
+	Destination string
+	DeletedAt   sql.NullTime
 }
 
 type Role struct {
@@ -22,10 +20,8 @@ type Role struct {
 	Endpoint       string
 	Operation      string
 	BucketSize     int64
-	CreatedAt      time.Time
 	AddTokenPerMin int64
 	InitialTokens  int64
-	UpdatedAt      sql.NullTime
 	DeletedAt      sql.NullTime
 	RateLimiterID  int64
 }
