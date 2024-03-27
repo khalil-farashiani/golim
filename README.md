@@ -11,13 +11,13 @@ all dependencies automatically resolve
 - sqlc (as query builder)
 - redis-go
 - ff cli
-- 
+- robfig-cron
 
 ## TODO (Golim v1):
 - [x] initial the project
 - [x] add db configuration
 - [x] add roles logic to project
-- [ ] implement bucket algorithm
+- [x] implement bucket algorithm
 - [ ] make golim thread safe
 - [x] add cli version
 - [ ] add tests
