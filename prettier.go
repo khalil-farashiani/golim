@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
 	"reflect"
+
+	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 func makeTable(data []interface{}) {

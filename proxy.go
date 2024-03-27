@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"html"
 	"io"
@@ -10,38 +9,28 @@ import (
 	"net/url"
 )
 
-var operationStringToID = map[string]int{
-	"GET":    1,
-	"POST":   2,
-	"PUT":    3,
-	"PATCH":  4,
-	"DELETE": 5,
-}
-
 var customTransport = http.DefaultTransport
 
-func runProxy(g *golim, db *sql.DB, cache *cache) func(w http.ResponseWriter, r *http.Request) {
+func runProxy(g *golim) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		method := r.Method
 		path := html.EscapeString(r.URL.Path)
-		lr := &limiterRole{
-			operation: operationStringToID[method],
+
+		g.limiterRole = &limiterRole{
+			operation: method,
 			endPoint:  path,
 		}
-		g.limiterRole = lr
-		role, err := g.getRole(r.Context(), db, cache)
+		if !isOkRequest(r, g) {
+			http.Error(w, "slow down", http.StatusTooManyRequests)
+			return
+		}
+
+		role, err := g.getRole(r.Context())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if !isOkRequest(r, lr, cache) {
-			http.Error(w, fmt.Sprintf("slow down"), http.StatusTooManyRequests)
-			return
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+
 		newURL := url.URL{
 			Scheme: "http",
 			Host:   role.Destination.String,
@@ -78,21 +67,22 @@ func runProxy(g *golim, db *sql.DB, cache *cache) func(w http.ResponseWriter, r 
 	}
 }
 
-func isOkRequest(r *http.Request, rl *limiterRole, cache *cache) bool {
+func isOkRequest(r *http.Request, g *golim) bool {
 	ctx := r.Context()
 	userIP := readUserIP(r)
-	capacity := cache.getUserRequestCap(ctx, userIP, rl)
+	capacity := g.cache.getUserRequestCap(ctx, userIP, g.limiterRole)
 	if capacity > 0 {
+		go g.cache.decreaseCap(r.Context(), userIP, g.limiterRole)
 		return true
 	}
 	return false
 }
 
-func startServer(g *golim, db *sql.DB, cache *cache) (interface{}, error) {
+func startServer(g *golim) (interface{}, error) {
 	portStr := fmt.Sprintf(":%d", g.port)
 	server := http.Server{
 		Addr:    portStr,
-		Handler: http.HandlerFunc(runProxy(g, db, cache)),
+		Handler: http.HandlerFunc(runProxy(g)),
 	}
 
 	// Start the server and log any errors

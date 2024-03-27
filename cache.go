@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/khalil-farashiani/golim/role"
-	"github.com/redis/go-redis/v9"
 	"os"
 	"time"
+
+	"github.com/khalil-farashiani/golim/role"
+	"github.com/pingcap/log"
+	"github.com/redis/go-redis/v9"
 )
 
 type cache struct {
@@ -24,14 +26,21 @@ func initRedis() *cache {
 	}
 }
 
-func (c *cache) increaseCap(ctx context.Context, rl *limiterRole, amount int64) {
-	key := operationIdToString[rl.operation] + " " + rl.endPoint
-	c.Do(ctx, "INCRBY", key, amount)
+func (c *cache) getAllUserLimitersKeys(ctx context.Context) []string {
+	res, err := c.Keys(ctx, "*GLOLIM_KEY*").Result()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return res
 }
 
-func (c *cache) decreaseCap(ctx context.Context, rl *limiterRole) {
-	key := operationIdToString[rl.operation] + " " + rl.endPoint
-	c.Do(ctx, "DECR", key)
+func (c *cache) increaseCap(ctx context.Context, key string, rl *limiterRole) {
+	c.IncrBy(ctx, key, rl.addToken)
+}
+
+func (c *cache) decreaseCap(ctx context.Context, userIP string, rl *limiterRole) {
+	key := userIP + "GLOLIM_KEY" + rl.operation + " " + rl.endPoint
+	c.Decr(ctx, key)
 }
 
 func (c *cache) setLimiter(ctx context.Context, params *role.GetRoleParams, val *role.GetRoleRow) {

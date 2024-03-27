@@ -1,12 +1,20 @@
 package main
 
 const (
-	createLimiterOperationID = 1
-	removeLimiterOperationID = 2
+	createLimiterOperation = "create"
+	removeLimiterOperation = "remove"
 )
 
 const (
-	addRoleOperationID    = 1
-	removeRoleOperationID = 2
-	getRolesOperationID   = 3
+	addRoleOperation      = "add"
+	removeRoleOperationID = "remove"
+	getRolesOperationID   = "getRoles"
+)
+
+const (
+	OperationGet    = "GET"
+	OperationPost   = "POST"
+	OperationPut    = "PUT"
+	OperationPatch  = "PATCH"
+	OperationDelete = "DELETE"
 )

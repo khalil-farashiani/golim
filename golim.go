@@ -4,24 +4,30 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/khalil-farashiani/golim/role"
 	"github.com/peterbourgon/ff/v4"
 )
 
 type limiterRole struct {
-	operation    int
+	operation    string
 	limiterID    int
 	endPoint     string
 	bucketSize   int
 	initialToken int
-	addToken     int
+	addToken     int64
 }
 
 type limiter struct {
 	id          interface{}
 	name        string
 	destination string
-	operation   int
+	operation   string
+}
+
+type Store struct {
+	db    *role.Queries
+	cache *cache
 }
 
 type golim struct {
@@ -29,90 +35,92 @@ type golim struct {
 	limiterRole *limiterRole
 	port        int64
 	skip        bool
+	Store
 }
 
-var operationIdToString = map[int]string{
-	1: "GET",
-	2: "POST",
-	3: "PUT",
-	4: "PATCH",
-	5: "DELETE",
-}
-
-func (g *golim) getRole(ctx context.Context, db *sql.DB, cache *cache) (role.GetRoleRow, error) {
+func (g *golim) getRole(ctx context.Context) (role.GetRoleRow, error) {
 	params := toGetRole(g)
-	query := role.New(db)
-	data := cache.getLimiter(ctx, params)
+	data := g.cache.getLimiter(ctx, params)
 	if data != nil {
 		return *data, nil
 	}
-	row, err := query.GetRole(ctx, params)
+	row, err := g.db.GetRole(ctx, params)
 	if err != nil {
 		return role.GetRoleRow{}, err
 	}
 	go func() {
-		cache.setLimiter(ctx, &params, &row)
+		g.cache.setLimiter(ctx, &params, &row)
 	}()
 	return row, nil
 }
 
-func (g *golim) getRoles(ctx context.Context, db *sql.DB) ([]role.GetRolesRow, error) {
-	query := role.New(db)
-	return query.GetRoles(ctx, int64(g.limiterRole.limiterID))
+func (g *golim) getRoles(ctx context.Context) ([]role.GetRolesRow, error) {
+	return g.db.GetRoles(ctx, int64(g.limiterRole.limiterID))
 }
 
-func (g *golim) addRole(ctx context.Context, db *sql.DB) error {
+func (g *golim) addRole(ctx context.Context) error {
 	params := toCreateRoleParam(g)
-	query := role.New(db)
-	_, err := query.CreateRole(ctx, params)
+	_, err := g.db.CreateRole(ctx, params)
 	return err
 }
 
-func (g *golim) removeRole(ctx context.Context, db *sql.DB) error {
-	query := role.New(db)
-	return query.DeleteRole(ctx, int64(g.limiterRole.limiterID))
+func (g *golim) removeRole(ctx context.Context) error {
+	return g.db.DeleteRole(ctx, int64(g.limiterRole.limiterID))
 }
 
-func (g *golim) createRateLimiter(ctx context.Context, db *sql.DB) error {
+func (g *golim) createRateLimiter(ctx context.Context) error {
 	params := toCreateRateLimiter(g)
-	query := role.New(db)
-	_, err := query.CrateRateLimiter(ctx, params)
+	_, err := g.db.CrateRateLimiter(ctx, params)
 	return err
 }
 
-func (g *golim) removeRateLimiter(ctx context.Context, db *sql.DB) error {
-	query := role.New(db)
-	return query.DeleteRateLimiter(ctx, g.limiter.id.(int64))
+func (g *golim) removeRateLimiter(ctx context.Context) error {
+	return g.db.DeleteRateLimiter(ctx, g.limiter.id.(int64))
 }
 
-func (g *golim) ExecCMD(ctx context.Context, db *sql.DB, cache *cache) (interface{}, error) {
+func (g *golim) ExecCMD(ctx context.Context) (interface{}, error) {
 
 	if g.port != 0 {
-		return startServer(g, db, cache)
+		return startServer(g)
 	}
 	if g.limiter != nil {
-		switch g.limiter.operation {
-		case createLimiterOperationID:
-			return nil, g.createRateLimiter(ctx, db)
-		case removeLimiterOperationID:
-			return nil, g.removeRateLimiter(ctx, db)
-		}
+		return handleLimiterOperation(g, ctx)
 	}
 	if g.limiterRole != nil {
-		switch g.limiterRole.operation {
-		case addRoleOperationID:
-			return nil, g.addRole(ctx, db)
-		case removeRoleOperationID:
-			return nil, g.removeRole(ctx, db)
-		case getRolesOperationID:
-			return g.getRoles(ctx, db)
-		}
+		return handleLimiterRoleOperation(g, ctx)
 	}
 	return nil, errors.New("unsupported operation")
 }
 
-func newLimiter() *golim {
-	return &golim{}
+func handleLimiterOperation(g *golim, ctx context.Context) (interface{}, error) {
+	switch g.limiter.operation {
+	case createLimiterOperation:
+		return nil, g.createRateLimiter(ctx)
+	case removeLimiterOperation:
+		return nil, g.removeRateLimiter(ctx)
+	}
+	return nil, errors.New("unknown limiter operation")
+}
+
+func handleLimiterRoleOperation(g *golim, ctx context.Context) (interface{}, error) {
+	switch g.limiterRole.operation {
+	case addRoleOperation:
+		return nil, g.addRole(ctx)
+	case removeRoleOperationID:
+		return nil, g.removeRole(ctx)
+	case getRolesOperationID:
+		return g.getRoles(ctx)
+	}
+	return nil, errors.New("unknown limiter role operation")
+}
+
+func newLimiter(db *sql.DB, cache *cache) *golim {
+	return &golim{
+		Store: Store{
+			db:    role.New(db),
+			cache: cache,
+		},
+	}
 }
 
 func (g *golim) createHelpCMD() *ff.Command {
@@ -163,7 +171,7 @@ func (g *golim) createInitCMD() *ff.Command {
 				g.limiter = &limiter{
 					name:        *limiterName,
 					destination: *destinationAddress,
-					operation:   createLimiterOperationID,
+					operation:   createLimiterOperation,
 				}
 			} else {
 				return errors.New("name and destination is required")
@@ -189,7 +197,7 @@ func (g *golim) addRemoveLimiterCMD() *ff.Command {
 			if *limiterID != 0 {
 				g.limiter = &limiter{
 					id:        *limiterID,
-					operation: removeLimiterOperationID,
+					operation: removeLimiterOperation,
 				}
 			}
 			g.skip = true
@@ -217,11 +225,11 @@ func (g *golim) createAddCMD() *ff.Command {
 			}
 			if *limiterID == 0 || *endpoint == "" {
 				g.limiterRole = &limiterRole{
-					operation:    addRoleOperationID,
+					operation:    addRoleOperation,
 					limiterID:    *limiterID,
 					endPoint:     *endpoint,
 					bucketSize:   *bucketSize,
-					addToken:     *addToken,
+					addToken:     int64(*addToken),
 					initialToken: *initialToken,
 				}
 			}
@@ -286,9 +294,9 @@ func (g *golim) createGetRolesCMD() *ff.Command {
 func toCreateRoleParam(g *golim) role.CreateRoleParams {
 	return role.CreateRoleParams{
 		Endpoint:       g.limiterRole.endPoint,
-		Operation:      operationIdToString[g.limiterRole.operation],
+		Operation:      g.limiterRole.operation,
 		BucketSize:     int64(g.limiterRole.bucketSize),
-		AddTokenPerMin: int64(g.limiterRole.addToken),
+		AddTokenPerMin: g.limiterRole.addToken,
 		InitialTokens:  int64(g.limiterRole.initialToken),
 		RateLimiterID:  int64(g.limiterRole.limiterID),
 	}
@@ -304,7 +312,7 @@ func toCreateRateLimiter(g *golim) role.CrateRateLimiterParams {
 func toGetRole(g *golim) role.GetRoleParams {
 	return role.GetRoleParams{
 		Endpoint:  g.limiterRole.endPoint,
-		Operation: operationIdToString[g.limiterRole.operation],
+		Operation: g.limiterRole.operation,
 	}
 }
 
