@@ -18,7 +18,8 @@ all dependencies automatically resolve
 - [x] add db configuration
 - [x] add roles logic to project
 - [ ] implement bucket algorithm
-- [ ] add cli version
+- [ ] make golim thread safe
+- [x] add cli version
 - [ ] add tests
-- [ ] add redis
+- [x] add redis
 - [ ] add default limiter, regex, ui version and ... (V2)
