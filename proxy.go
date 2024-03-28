@@ -21,7 +21,7 @@ func runProxy(g *golim) func(w http.ResponseWriter, r *http.Request) {
 			endPoint:  path,
 		}
 		if !isOkRequest(r, g) {
-			http.Error(w, "slow down", http.StatusTooManyRequests)
+			http.Error(w, slowDownError, http.StatusTooManyRequests)
 			return
 		}
 
@@ -39,7 +39,7 @@ func runProxy(g *golim) func(w http.ResponseWriter, r *http.Request) {
 		targetURL := newURL
 		proxyReq, err := http.NewRequest(r.Method, targetURL.String(), r.Body)
 		if err != nil {
-			http.Error(w, "Error creating proxy request", http.StatusInternalServerError)
+			http.Error(w, createProxyError, http.StatusInternalServerError)
 			return
 		}
 		for name, values := range r.Header {
@@ -50,7 +50,7 @@ func runProxy(g *golim) func(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := customTransport.RoundTrip(proxyReq)
 		if err != nil {
-			http.Error(w, "Error sending proxy request", http.StatusInternalServerError)
+			http.Error(w, sendingProxyError, http.StatusInternalServerError)
 			return
 		}
 		defer resp.Body.Close()

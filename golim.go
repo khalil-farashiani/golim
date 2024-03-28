@@ -89,7 +89,7 @@ func (g *golim) ExecCMD(ctx context.Context) (interface{}, error) {
 	if g.limiterRole != nil {
 		return handleLimiterRoleOperation(g, ctx)
 	}
-	return nil, errors.New("unsupported operation")
+	return nil, errors.New(unsupportedOperationError)
 }
 
 func handleLimiterOperation(g *golim, ctx context.Context) (interface{}, error) {
@@ -99,7 +99,7 @@ func handleLimiterOperation(g *golim, ctx context.Context) (interface{}, error) 
 	case removeLimiterOperation:
 		return nil, g.removeRateLimiter(ctx)
 	}
-	return nil, errors.New("unknown limiter operation")
+	return nil, errors.New(unknownLimiterError)
 }
 
 func handleLimiterRoleOperation(g *golim, ctx context.Context) (interface{}, error) {
@@ -111,7 +111,7 @@ func handleLimiterRoleOperation(g *golim, ctx context.Context) (interface{}, err
 	case getRolesOperationID:
 		return g.getRoles(ctx)
 	}
-	return nil, errors.New("unknown limiter role operation")
+	return nil, errors.New(unknownLimiterRoleError)
 }
 
 func newLimiter(db *sql.DB, cache *cache) *golim {
@@ -174,7 +174,7 @@ func (g *golim) createInitCMD() *ff.Command {
 					operation:   createLimiterOperation,
 				}
 			} else {
-				return errors.New("name and destination is required")
+				return errors.New(requiredNameDestinationError)
 			}
 			g.skip = true
 			return nil
@@ -283,7 +283,7 @@ func (g *golim) createGetRolesCMD() *ff.Command {
 					limiterID: *limiterID,
 				}
 			} else {
-				return errors.New("limiter id is required")
+				return errors.New(requiredLimiterIDError)
 			}
 			g.skip = true
 			return nil
