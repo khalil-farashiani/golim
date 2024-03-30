@@ -8,6 +8,7 @@ package role
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const crateRateLimiter = `-- name: CrateRateLimiter :one
@@ -157,6 +158,11 @@ type GetRoleRow struct {
 	AddTokenPerMin int64
 	InitialTokens  int64
 	Destination    sql.NullString
+}
+
+
+func (g GetRoleRow) MarshalBinary() ([]byte, error) {
+	return json.Marshal(g)
 }
 
 func (q *Queries) GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error) {

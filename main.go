@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -19,36 +20,32 @@ var ddl string
 func initDB(ctx context.Context) *sql.DB {
 	db, err := sql.Open("sqlite3", "golim.sqlite")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	// create tables
 	if _, err := db.ExecContext(ctx, ddl); err != nil && !strings.Contains(err.Error(), "already exists") {
-		panic(err)
+		log.Fatal(err)
 	}
 	return db
 }
 
 func main() {
 	ctx := context.Background()
-
 	db := initDB(ctx)
 	cache := initRedis()
 	limiter, err := initFlags(ctx, db, cache)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error initializing limiter: %v", err)
 	}
+
 	data, err := limiter.ExecCMD(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error executing command: %v", err)
 	}
 	if data != nil {
 		makeTable(toSlice(data))
-		fmt.Fprintf(os.Stdout, "DONE")
-		return
 	}
-	fmt.Printf("DONE")
+	fmt.Println("DONE")
 }
 
 // initFlags get command and flags from std input to create a golim or role
@@ -71,7 +68,7 @@ func createRootCommand(g *golim) *ff.Command {
 	addCMD := g.createAddCMD()
 	removeCMD := g.createRemoveCMD()
 	getCMD := g.createGetRolesCMD()
-	removeLimiterCMD := g.createRemoveCMD()
+	removeLimiterCMD := g.addRemoveLimiterCMD()
 	runCMD := g.createRunCMD()
 
 	rootCmd := &ff.Command{

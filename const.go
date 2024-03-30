@@ -6,26 +6,34 @@ const (
 )
 
 const (
-	addRoleOperation      = "add"
-	removeRoleOperationID = "remove"
-	getRolesOperationID   = "getRoles"
+	addRoleOperation    = "add"
+	removeRoleOperation = "remove"
+	getRolesOperation   = "getRoles"
 )
 
 const (
-	OperationGet    = "GET"
-	OperationPost   = "POST"
-	OperationPut    = "PUT"
-	OperationPatch  = "PATCH"
-	OperationDelete = "DELETE"
+	limiterCacheMainKey         = "GOLIM_KEY"
+	limiterCacheRegexPatternKey = "*GOLIM_KEY*"
 )
 
 const (
 	unknownLimiterRoleError      = "unknown limiter role operation"
 	unknownLimiterError          = "unknown limiter operation"
-	unsupportedOperationError    = "unsupported operation"
 	requiredNameDestinationError = "name and destination is required"
 	requiredLimiterIDError       = "limiter id is required"
 	createProxyError             = "Error creating proxy request"
 	sendingProxyError            = "Error sending proxy request"
 	slowDownError                = "slow down"
+	notFoundSqlError             = "sql: no rows in result set"
+)
+
+const (
+	helpMessageUsage = `
+Golim help:
+	- golim run -p{--port} <port> [run in the specific port default is 8080]
+	- golim get -l{--limiter} <limiter id> [get roles of a rate limiter]
+	- golim init -n{--name} foo -d{--destination} 8.8.8.8 [initial new rate limiter]
+	- golim add -l{--limiter} <limiter id> -e{--endpoint} <endpoint> -b{--bsize} <bucket size> -a{--add_token} <add_token per minute> -i{--initial_token} <initial tokens> [add specific role to limiter]
+	- golim remove -i{--id} <role id> [remove specific role]
+	- golim remove-limiter -l{--limiter} <limiter id> [remove specific limiter]`
 )

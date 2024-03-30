@@ -2,35 +2,42 @@ package main
 
 import (
 	"fmt"
+	"github.com/khalil-farashiani/golim/role"
 	"html"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 )
 
-var customTransport = http.DefaultTransport
+var customTransport = &http.Transport{
+	MaxIdleConns:        100,
+	MaxIdleConnsPerHost: 100,
+}
 
-func runProxy(g *golim) func(w http.ResponseWriter, r *http.Request) {
+var client = &http.Client{
+	Timeout:   time.Second * 10,
+	Transport: customTransport,
+}
+
+func runProxy(g *golim) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		method := r.Method
 		path := html.EscapeString(r.URL.Path)
-
 		g.limiterRole = &limiterRole{
 			operation: method,
 			endPoint:  path,
 		}
-		if !isOkRequest(r, g) {
-			http.Error(w, slowDownError, http.StatusTooManyRequests)
-			return
-		}
-
-		role, err := g.getRole(r.Context())
+		role, needToCheckRequest, err := g.getRole(r.Context())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
+		if needToCheckRequest && !isOkRequest(r, g, role) {
+			http.Error(w, slowDownError, http.StatusTooManyRequests)
+			return
+		}
 		newURL := url.URL{
 			Scheme: "http",
 			Host:   role.Destination.String,
@@ -47,30 +54,26 @@ func runProxy(g *golim) func(w http.ResponseWriter, r *http.Request) {
 				proxyReq.Header.Add(name, value)
 			}
 		}
-
-		resp, err := customTransport.RoundTrip(proxyReq)
+		resp, err := client.Do(proxyReq)
 		if err != nil {
 			http.Error(w, sendingProxyError, http.StatusInternalServerError)
 			return
 		}
 		defer resp.Body.Close()
-
 		for name, values := range resp.Header {
 			for _, value := range values {
 				w.Header().Add(name, value)
 			}
 		}
-
 		w.WriteHeader(resp.StatusCode)
-
 		io.Copy(w, resp.Body)
 	}
 }
 
-func isOkRequest(r *http.Request, g *golim) bool {
+func isOkRequest(r *http.Request, g *golim, role role.GetRoleRow) bool {
 	ctx := r.Context()
 	userIP := readUserIP(r)
-	capacity := g.cache.getUserRequestCap(ctx, userIP, g.limiterRole)
+	capacity := g.cache.getUserRequestCap(ctx, userIP, g, role)
 	if capacity > 0 {
 		go g.cache.decreaseCap(r.Context(), userIP, g.limiterRole)
 		return true

@@ -8,9 +8,9 @@ import (
 )
 
 func scheduleIncreaseCap(ctx context.Context, g *golim) {
-	userKeys := g.cache.getAllUserLimitersKeys(ctx)
 	cr := cron.New()
 	_, err := cr.AddFunc("@every 1m", func() {
+		userKeys := g.cache.getAllUserLimitersKeys(ctx)
 		fmt.Println("Running tasks")
 		for _, key := range userKeys {
 			g.cache.increaseCap(ctx, key, g.limiterRole)
