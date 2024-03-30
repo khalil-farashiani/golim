@@ -13,7 +13,7 @@ all dependencies automatically resolve
 - ff cli
 - robfig-cron
 
-## TODO (Golim v1):
+## TODO (Golim v0.0.1):
 - [x] initial the project
 - [x] add db configuration
 - [x] add roles logic to project
@@ -22,4 +22,4 @@ all dependencies automatically resolve
 - [x] add cli version
 - [ ] add tests
 - [x] add redis
-- [ ] add default limiter, regex, ui version and ... (V2)
+- [ ] add default limiter, regex, ui version, make service open failed and ... (V1)
