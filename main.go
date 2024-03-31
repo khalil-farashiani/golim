@@ -29,6 +29,7 @@ func initDB(ctx context.Context) *sql.DB {
 	return db
 }
 
+// everything start from main
 func main() {
 	ctx := context.Background()
 	db := initDB(ctx)
@@ -62,7 +63,6 @@ func initFlags(ctx context.Context, db *sql.DB, cache *cache) (*golim, error) {
 
 func createRootCommand(g *golim) *ff.Command {
 	rootFlags := ff.NewFlagSet("golim")
-
 	helpCMD := g.createHelpCMD()
 	initCMD := g.createInitCMD()
 	addCMD := g.createAddCMD()
@@ -70,7 +70,6 @@ func createRootCommand(g *golim) *ff.Command {
 	getCMD := g.createGetRolesCMD()
 	removeLimiterCMD := g.addRemoveLimiterCMD()
 	runCMD := g.createRunCMD()
-
 	rootCmd := &ff.Command{
 		Name:        "golim",
 		Usage:       "golim [COMMANDS] <FLAGS>",
@@ -80,6 +79,5 @@ func createRootCommand(g *golim) *ff.Command {
 			return nil
 		},
 	}
-
 	return rootCmd
 }

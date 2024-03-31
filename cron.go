@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+// TODO: fix the g.rl is nil
 func scheduleIncreaseCap(ctx context.Context, g *golim) {
 	cr := cron.New()
 	_, err := cr.AddFunc("@every 1m", func() {

@@ -44,7 +44,7 @@ func (g *golim) getRole(ctx context.Context) (role.GetRoleRow, bool, error) {
 	params := toGetRole(g)
 	data := g.cache.getLimiter(ctx, params)
 	if data != nil {
-		return *data, false, nil
+		return *data, true, nil
 	}
 
 	row, err := g.db.GetRole(ctx, params)
@@ -59,7 +59,7 @@ func (g *golim) getRole(ctx context.Context) (role.GetRoleRow, bool, error) {
 		return role.GetRoleRow{}, false, nil
 	}
 
-	g.cache.setLimiter(ctx, &params, &row)
+	go g.cache.setLimiter(ctx, &params, &row)
 
 	return row, true, nil
 }

@@ -90,10 +90,11 @@ func (c *cache) getUserRequestCap(ctx context.Context, ipAddr string, g *golim, 
 	val, err := c.Get(ctx, key).Result()
 	if err != nil {
 		if err != redis.Nil {
-			go c.setUserRequestCap(ctx, key, role)
 			log.Printf("Error getting user request capacity: %v", err)
+			return 0
 		}
-		return 0
+		go c.setUserRequestCap(ctx, key, role)
+		return initialTokenForTheFirstUSerRequest
 	}
 	var res int64
 	json.Unmarshal([]byte(val), &res)

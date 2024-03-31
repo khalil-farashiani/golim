@@ -12,6 +12,10 @@ const (
 )
 
 const (
+	initialTokenForTheFirstUSerRequest = 1
+)
+
+const (
 	limiterCacheMainKey         = "GOLIM_KEY"
 	limiterCacheRegexPatternKey = "*GOLIM_KEY*"
 )
