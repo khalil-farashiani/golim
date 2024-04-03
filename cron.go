@@ -3,23 +3,40 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"sync"
 
 	"github.com/robfig/cron/v3"
 )
 
-// TODO: fix the g.rl is nil
-func scheduleIncreaseCap(ctx context.Context, g *golim) {
-	cr := cron.New()
+var cr = cron.New()
+
+func runCronTasks(ctx context.Context, g *golim) {
 	_, err := cr.AddFunc("@every 1m", func() {
-		userKeys := g.cache.getAllUserLimitersKeys(ctx)
-		fmt.Println("Running tasks")
-		for _, key := range userKeys {
-			g.cache.increaseCap(ctx, key, g.limiterRole)
-		}
+		scheduleIncreaseCap(ctx, g)
 	})
 	if err != nil {
 		fmt.Println("Error scheduling task:", err)
-		return
 	}
 	cr.Start()
+}
+
+func scheduleIncreaseCap(ctx context.Context, g *golim) {
+	roles, err := g.getRoles(ctx)
+	if err != nil {
+		log.Println("Error getting roles:", err)
+		return
+	}
+	var wg sync.WaitGroup
+	for _, role := range roles {
+		userKeys := g.cache.getAllUserLimitersKeys(ctx, limiterCacheRegexPatternKey+role.Operation+role.Endpoint)
+		for _, key := range userKeys {
+			wg.Add(1)
+			go func(ctx context.Context, key string, tokenAmount int64) {
+				defer wg.Done()
+				g.cache.increaseCap(ctx, key, tokenAmount)
+			}(context.Background(), key, g.limiterRole.addToken)
+		}
+	}
+	wg.Wait()
 }

@@ -15,6 +15,7 @@ type limiterRole struct {
 	operation    string
 	limiterID    int
 	endPoint     string
+	method       string
 	bucketSize   int
 	initialToken int
 	addToken     int64
@@ -91,7 +92,7 @@ func (g *golim) removeRateLimiter(ctx context.Context) error {
 func (g *golim) ExecCMD(ctx context.Context) (interface{}, error) {
 
 	if g.port != 0 {
-		go scheduleIncreaseCap(ctx, g)
+		go runCronTasks(ctx, g)
 		return startServer(g)
 	}
 	if g.limiter != nil {
@@ -223,6 +224,7 @@ func (g *golim) createAddCMD() *ff.Command {
 	addFlags := ff.NewFlagSet("add")
 	limiterID := addFlags.Int('l', "limiter", 0, "The limiter id")
 	endpoint := addFlags.String('e', "endpoint", "", "The endpoint address")
+	method := addFlags.String('m', "method", "GET", "The endpoint method")
 	bucketSize := addFlags.Int('b', "bsize", 100, "The initial bucket size")
 	addToken := addFlags.Int('a', "add_token", 60, "The number of tokens to add per minute")
 	initialToken := addFlags.Int('i', "initial_token", 100, "The number of tokens to add per minute")
@@ -236,7 +238,7 @@ func (g *golim) createAddCMD() *ff.Command {
 			if g.skip {
 				return nil
 			}
-			if *limiterID == 0 || *endpoint == "" {
+			if *limiterID == 0 && *endpoint != "" {
 				g.limiterRole = &limiterRole{
 					operation:    addRoleOperation,
 					limiterID:    *limiterID,
@@ -244,6 +246,7 @@ func (g *golim) createAddCMD() *ff.Command {
 					bucketSize:   *bucketSize,
 					addToken:     int64(*addToken),
 					initialToken: *initialToken,
+					method:       *method,
 				}
 			}
 			g.skip = true

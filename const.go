@@ -17,7 +17,7 @@ const (
 
 const (
 	limiterCacheMainKey         = "GOLIM_KEY"
-	limiterCacheRegexPatternKey = "*GOLIM_KEY*"
+	limiterCacheRegexPatternKey = "*GOLIM_KEY"
 )
 
 const (

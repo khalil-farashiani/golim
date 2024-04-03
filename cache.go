@@ -30,8 +30,8 @@ func initRedis() *cache {
 }
 
 // getAllUserLimitersKeys retrieves all user limiter keys from cache
-func (c *cache) getAllUserLimitersKeys(ctx context.Context) []string {
-	res, err := c.Keys(ctx, limiterCacheRegexPatternKey).Result()
+func (c *cache) getAllUserLimitersKeys(ctx context.Context, pattern string) []string {
+	res, err := c.Keys(ctx, pattern).Result()
 	if err != nil {
 		log.Printf("Error retrieving keys: %v", err)
 		return nil
@@ -40,15 +40,15 @@ func (c *cache) getAllUserLimitersKeys(ctx context.Context) []string {
 }
 
 // increaseCap increases the capacity in cache for a given key
-func (c *cache) increaseCap(ctx context.Context, key string, rl *limiterRole) {
-	if err := c.IncrBy(ctx, key, rl.addToken).Err(); err != nil {
+func (c *cache) increaseCap(ctx context.Context, key string, tokenAmount int64) {
+	if err := c.IncrBy(ctx, key, tokenAmount).Err(); err != nil {
 		log.Printf("Error increasing capacity: %v", err)
 	}
 }
 
 // decreaseCap decreases the capacity in cache for a given key
 func (c *cache) decreaseCap(ctx context.Context, userIP string, rl *limiterRole) {
-	key := fmt.Sprintf("%s%s%s %s", userIP, limiterCacheMainKey, rl.operation, rl.endPoint)
+	key := fmt.Sprintf("%s%s%s%s", userIP, limiterCacheMainKey, rl.operation, rl.endPoint)
 	if err := c.Decr(ctx, key).Err(); err != nil {
 		log.Printf("Error decreasing capacity: %v", err)
 	}
