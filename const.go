@@ -25,8 +25,6 @@ const (
 	unknownLimiterError          = "unknown limiter operation"
 	requiredNameDestinationError = "name and destination is required"
 	requiredLimiterIDError       = "limiter id is required"
-	createProxyError             = "Error creating proxy request"
-	sendingProxyError            = "Error sending proxy request"
 	slowDownError                = "slow down"
 	notFoundSqlError             = "sql: no rows in result set"
 )

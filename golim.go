@@ -238,7 +238,7 @@ func (g *golim) createAddCMD() *ff.Command {
 			if g.skip {
 				return nil
 			}
-			if *limiterID == 0 && *endpoint != "" {
+			if *limiterID != 0 && *endpoint != "" {
 				g.limiterRole = &limiterRole{
 					operation:    addRoleOperation,
 					limiterID:    *limiterID,
@@ -310,7 +310,7 @@ func (g *golim) createGetRolesCMD() *ff.Command {
 func toCreateRoleParam(g *golim) role.CreateRoleParams {
 	return role.CreateRoleParams{
 		Endpoint:       g.limiterRole.endPoint,
-		Operation:      g.limiterRole.operation,
+		Operation:      g.limiterRole.method,
 		BucketSize:     int64(g.limiterRole.bucketSize),
 		AddTokenPerMin: g.limiterRole.addToken,
 		InitialTokens:  int64(g.limiterRole.initialToken),
