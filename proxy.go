@@ -34,10 +34,12 @@ func runProxy(g *golim) http.HandlerFunc {
 		}
 		currentUserRole, needToCheckRequest, err := g.getRole(r.Context())
 		if err != nil {
+			g.logger.errLog.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if needToCheckRequest && !isOkRequest(r, g, currentUserRole) {
+			g.logger.errLog.Println(err)
 			http.Error(w, slowDownError, http.StatusTooManyRequests)
 			return
 		}

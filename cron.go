@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/robfig/cron/v3"
@@ -16,6 +15,7 @@ func runCronTasks(ctx context.Context, g *golim) {
 		scheduleIncreaseCap(ctx, g)
 	})
 	if err != nil {
+		g.logger.errLog.Println(err)
 		fmt.Println("Error scheduling task:", err)
 	}
 	cr.Start()
@@ -24,7 +24,7 @@ func runCronTasks(ctx context.Context, g *golim) {
 func scheduleIncreaseCap(ctx context.Context, g *golim) {
 	roles, err := g.getRoles(ctx)
 	if err != nil {
-		log.Println("Error getting roles:", err)
+		g.logger.errLog.Println(err)
 		return
 	}
 	var wg sync.WaitGroup
