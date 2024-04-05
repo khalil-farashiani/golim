@@ -41,7 +41,6 @@ Golim help:
 )
 
 const (
-	basePath       = "/.golim/"
-	loggerFileName = "/logs/golim.log"
-	dbPath         = "/db/"
+	loggerFileName = "golim.log"
+	dbPath         = "./db/"
 )
