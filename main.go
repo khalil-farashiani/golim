@@ -32,15 +32,19 @@ func initDB(ctx context.Context) *sql.DB {
 // everything start from main
 func main() {
 	ctx := context.Background()
+	logger := initLogger()
 	db := initDB(ctx)
 	cache := initRedis()
-	limiter, err := initFlags(ctx, db, cache)
+
+	limiter, err := initFlags(ctx, db, cache, logger)
 	if err != nil {
+		logger.errLog.Println(err.Error())
 		log.Fatalf("Error initializing limiter: %v", err)
 	}
 
 	data, err := limiter.ExecCMD(ctx)
 	if err != nil {
+		logger.errLog.Println(err.Error())
 		log.Fatalf("Error executing command: %v", err)
 	}
 	if data != nil {
@@ -50,8 +54,8 @@ func main() {
 }
 
 // initFlags get command and flags from std input to create a golim or role
-func initFlags(ctx context.Context, db *sql.DB, cache *cache) (*golim, error) {
-	golim := newLimiter(db, cache)
+func initFlags(ctx context.Context, db *sql.DB, cache *cache, logger *logger) (*golim, error) {
+	golim := newLimiter(db, cache, logger)
 
 	rootCmd := createRootCommand(golim)
 	if err := rootCmd.ParseAndRun(ctx, os.Args[1:]); err != nil {

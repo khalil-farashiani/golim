@@ -39,3 +39,9 @@ Golim help:
 	- golim remove -i{--id} <role id> [remove specific role]
 	- golim remove-limiter -l{--limiter} <limiter id> [remove specific limiter]`
 )
+
+const (
+	basePath       = "/.golim/"
+	loggerFileName = "/logs/golim.log"
+	dbPath         = "/db/"
+)

@@ -38,6 +38,7 @@ type golim struct {
 	limiterRole *limiterRole
 	port        int64
 	skip        bool
+	*logger
 	Store
 }
 
@@ -126,8 +127,9 @@ func handleLimiterRoleOperation(g *golim, ctx context.Context) (interface{}, err
 	return nil, errors.New(unknownLimiterRoleError)
 }
 
-func newLimiter(db *sql.DB, cache *cache) *golim {
+func newLimiter(db *sql.DB, cache *cache, logger *logger) *golim {
 	return &golim{
+		logger: logger,
 		Store: Store{
 			db:    role.New(db),
 			cache: cache,
