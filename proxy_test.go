@@ -28,20 +28,20 @@ func TestReadUserIP(t *testing.T) {
 		},
 		{
 			name:     "RemoteAddr field",
-			expected: "192.168.0.4:67890",
+			expected: "192.168.0.4",
 		},
 		{
 			name: "No headers",
 			ipHeaders: map[string]string{
 				"Other-Header": "value",
 			},
-			expected: "192.168.0.4:67890",
+			expected: "192.168.0.4",
 		},
 	}
 
 	for _, tc := range testCases {
 		req := httptest.NewRequest("GET", "/", nil)
-		req.RemoteAddr = "192.168.0.4:67890" // Default RemoteAddr
+		req.RemoteAddr = "192.168.0.4" // Default RemoteAddr
 
 		for k, v := range tc.ipHeaders {
 			req.Header.Set(k, v)
