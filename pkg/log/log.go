@@ -1,22 +1,26 @@
-package main
+package log
 
 import (
 	"log"
 	"os"
 )
 
-type logger struct {
+const (
+	loggerFileName = "golim.log"
+)
+
+type Logger struct {
 	errLog *log.Logger
 }
 
-func initLogger() *logger {
+func InitLogger() *Logger {
 	file, err := os.OpenFile(loggerFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 
-	return &logger{
+	return &Logger{
 		errLog: log.New(file, "Error Logger:\t", log.Ldate|log.Ltime|log.Lshortfile),
 	}
 }

@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/khalil-farashiani/golim/internal/service"
+	"github.com/khalil-farashiani/golim/pkg"
 	"sync"
 
 	"github.com/robfig/cron/v3"
@@ -10,7 +12,7 @@ import (
 
 var cr = cron.New()
 
-func runCronTasks(ctx context.Context, g *golim) {
+func runCronTasks(ctx context.Context, g *service.golim) {
 	_, err := cr.AddFunc("@every 1m", func() {
 		scheduleIncreaseCap(ctx, g)
 	})
@@ -21,7 +23,7 @@ func runCronTasks(ctx context.Context, g *golim) {
 	cr.Start()
 }
 
-func scheduleIncreaseCap(ctx context.Context, g *golim) {
+func scheduleIncreaseCap(ctx context.Context, g *service.golim) {
 	roles, err := g.getRoles(ctx)
 	if err != nil {
 		g.logger.errLog.Println(err)
@@ -29,7 +31,7 @@ func scheduleIncreaseCap(ctx context.Context, g *golim) {
 	}
 	var wg sync.WaitGroup
 	for _, role := range roles {
-		userKeys := g.cache.getAllUserLimitersKeys(ctx, limiterCacheRegexPatternKey+role.Operation+role.Endpoint)
+		userKeys := g.cache.getAllUserLimitersKeys(ctx, pkg.limiterCacheRegexPatternKey+role.Operation+role.Endpoint)
 		for _, key := range userKeys {
 			wg.Add(1)
 			go func(ctx context.Context, key string, tokenAmount int64) {

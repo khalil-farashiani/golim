@@ -1,11 +1,11 @@
--- name: GetRoles :many
-SELECT id, endpoint, operation,  bucket_size, add_token_per_min, initial_tokens, rate_limiter_id FROM role
+-- Name: GetRoles :many
+SELECT id, endpoint, Operation,  bucket_size, add_token_per_min, initial_tokens, rate_limiter_id FROM role
 WHERE deleted_at is NULL and rate_limiter_id = ?;
 
--- name: CreateRole :one
+-- Name: CreateRole :one
 INSERT INTO role (
         endpoint,
-        operation,
+        Operation,
         bucket_size,
         add_token_per_min,
         initial_tokens,
@@ -16,35 +16,35 @@ INSERT INTO role (
     RETURNING *;
 
 
--- name: DeleteRole :exec
+-- Name: DeleteRole :exec
 UPDATE role
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = ?;
 
 
--- name: GetRateLimiters :many
+-- Name: GetRateLimiters :many
 SELECT * FROM rate_limiter
 WHERE deleted_at = null;
 
 
--- name: CrateRateLimiter :one
+-- Name: CrateRateLimiter :one
 INSERT INTO rate_limiter (
-    name,
-    destination
+    Name,
+    Destination
 ) VALUES (
              ?,
              ?
          )
     RETURNING *;
 
--- name: DeleteRateLimiter :exec
+-- Name: DeleteRateLimiter :exec
 UPDATE rate_limiter
     SET deleted_at = CURRENT_TIMESTAMP
     WHERE id = ?;
 
 
--- name: GetRole :one
-SELECT r.endpoint, r.operation, r.bucket_size, r.add_token_per_min, r.initial_tokens, ra.destination FROM role As r
+-- Name: GetRole :one
+SELECT r.endpoint, r.Operation, r.bucket_size, r.add_token_per_min, r.initial_tokens, ra.Destination FROM role As r
        LEFT JOIN rate_limiter as ra ON ra.id = r.rate_limiter_id
-WHERE r.deleted_at is null and r.endpoint = ? and r.operation = ?;
+WHERE r.deleted_at is null and r.endpoint = ? and r.Operation = ?;
 

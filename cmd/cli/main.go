@@ -1,39 +1,22 @@
-package main
+package cli
 
 import (
 	"context"
 	"database/sql"
 	_ "embed"
 	"fmt"
-	"log"
-	"os"
-	"strings"
-
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/khalil-farashiani/golim/internal/store"
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
+	"log"
+	"os"
 )
-
-//go:embed schema.sql
-var ddl string
-
-func initDB(ctx context.Context) *sql.DB {
-	db, err := sql.Open("sqlite3", "golim.sqlite")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// create tables
-	if _, err := db.ExecContext(ctx, ddl); err != nil && !strings.Contains(err.Error(), "already exists") {
-		log.Fatal(err)
-	}
-	return db
-}
 
 // everything start from main
 func main() {
 	ctx := context.Background()
 	logger := initLogger()
-	db := initDB(ctx)
+	db := store.InitDB(ctx)
 	cache := initRedis()
 
 	limiter, err := initFlags(ctx, db, cache, logger)

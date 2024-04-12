@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/khalil-farashiani/golim/role"
+	"github.com/khalil-farashiani/golim/internal/service"
+	"github.com/khalil-farashiani/golim/internal/store/role"
+	"github.com/khalil-farashiani/golim/pkg"
 	"html"
 	"io"
 	"log"
@@ -24,11 +26,11 @@ var client = &http.Client{
 
 var proxyClient = client
 
-func runProxy(g *golim) http.HandlerFunc {
+func runProxy(g *service.golim) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		method := r.Method
 		path := html.EscapeString(r.URL.Path)
-		g.limiterRole = &limiterRole{
+		g.limiterRole = &service.limiterRole{
 			operation: method,
 			endPoint:  path,
 		}
@@ -40,14 +42,14 @@ func runProxy(g *golim) http.HandlerFunc {
 		}
 		if needToCheckRequest && !isOkRequest(r, g, currentUserRole) {
 			g.logger.errLog.Println(err)
-			http.Error(w, slowDownError, http.StatusTooManyRequests)
+			http.Error(w, pkg.slowDownError, http.StatusTooManyRequests)
 			return
 		}
 		proxyRequest(w, r, g, currentUserRole)
 	}
 }
 
-func proxyRequest(w http.ResponseWriter, r *http.Request, g *golim, role role.GetRoleRow) {
+func proxyRequest(w http.ResponseWriter, r *http.Request, g *service.golim, role role.GetRoleRow) {
 	newURL := buildURL(role)
 	proxyReq := createProxyRequest(r, newURL)
 	copyHeaders(r, proxyReq)
@@ -96,7 +98,7 @@ func writeResponse(w http.ResponseWriter, resp *http.Response) {
 	io.Copy(w, resp.Body)
 }
 
-func isOkRequest(r *http.Request, g *golim, role role.GetRoleRow) bool {
+func isOkRequest(r *http.Request, g *service.golim, role role.GetRoleRow) bool {
 	ctx := r.Context()
 	userIP := readUserIP(r)
 	capacity := g.cache.getUserRequestCap(ctx, userIP, g, role)
@@ -107,7 +109,7 @@ func isOkRequest(r *http.Request, g *golim, role role.GetRoleRow) bool {
 	return false
 }
 
-func startServer(g *golim) (interface{}, error) {
+func startServer(g *service.golim) (interface{}, error) {
 	portStr := fmt.Sprintf(":%d", g.port)
 	server := http.Server{
 		Addr:    portStr,
