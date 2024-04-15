@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/khalil-farashiani/golim/internal/contract"
 	"github.com/khalil-farashiani/golim/internal/domain"
+	"github.com/khalil-farashiani/golim/internal/entity"
 	"github.com/khalil-farashiani/golim/internal/store"
 	role2 "github.com/khalil-farashiani/golim/internal/store/role"
-	"strings"
-
+	"github.com/khalil-farashiani/golim/pkg/log"
 	"github.com/peterbourgon/ff/v4"
 )
 
@@ -24,55 +25,77 @@ Golim help:
 	- golim remove-limiter -l{--limiter} <limiter id> [remove specific limiter]`
 )
 
-func (g *golim) getRole(ctx context.Context) (role2.GetRoleRow, bool, error) {
-	params := toGetRole(g)
-	data := g.cache.getLimiter(ctx, params)
+const (
+	unknownLimiterRoleError      = "unknown limiter role operation"
+	unknownLimiterError          = "unknown limiter operation"
+	requiredNameDestinationError = "name and destination is required"
+	requiredLimiterIDError       = "limiter id is required"
+	slowDownError                = "slow down"
+	notFoundSqlError             = "sql: no rows in result set"
+)
+
+type Golim struct {
+	Cache  contract.Cache
+	Logger contract.Logger
+	DB     contract.DBStore
+}
+
+func New() Golim {
+	return Golim{}
+}
+
+func (g *Golim) AddCache(cache contract.Cache) *Golim {
+	g.Cache = cache
+	return g
+}
+
+func (g *Golim) AddDB(db contract.DBStore) *Golim {
+	g.DB = db
+	return g
+}
+
+func (g *Golim) AddLogger(logger contract.Logger) *Golim {
+	g.Logger = logger
+	return g
+}
+
+func (g *Golim) GetRole(ctx context.Context, ID int64) (entity.Role, error) {
+	data := g.Cache.GetRole(ctx, ID)
 	if data != nil {
-		return *data, true, nil
+		return *data, nil
 	}
 
-	row, err := g.db.GetRole(ctx, params)
+	role, err := g.DB.GetRole(ctx, ID)
 	if err != nil {
-		if strings.Contains(err.Error(), main.notFoundSqlError) {
-			return role2.GetRoleRow{}, false, nil
-		}
-		return role2.GetRoleRow{}, false, err
+		return entity.Role{}, err
 	}
 
-	if row.Endpoint == "" {
-		return role2.GetRoleRow{}, false, nil
-	}
+	go g.Cache.SetRole(ctx, role)
 
-	go g.cache.setLimiter(ctx, &params, &row)
-
-	return row, true, nil
+	return role, nil
 }
 
-func (g *golim) getRoles(ctx context.Context) ([]role2.GetRolesRow, error) {
-	return g.db.GetRoles(ctx, int64(g.limiterRole.limiterID))
+func (g *Golim) getRoles(ctx context.Context, ID int64) ([]entity.Role, error) {
+	return g.DB.GetRoles(ctx, ID)
 }
 
-func (g *golim) addRole(ctx context.Context) error {
-	params := toCreateRoleParam(g)
-	_, err := g.db.CreateRole(ctx, params)
-	return err
+func (g *Golim) addRole(ctx context.Context, role entity.Role) error {
+	return g.DB.CreateRole(ctx, role)
 }
 
-func (g *golim) removeRole(ctx context.Context) error {
-	return g.db.DeleteRole(ctx, int64(g.limiterRole.limiterID))
+func (g *Golim) removeRole(ctx context.Context, ID int64) error {
+	return g.DB.DeleteRole(ctx, ID)
 }
 
-func (g *golim) createRateLimiter(ctx context.Context) error {
-	params := toCreateRateLimiter(g)
-	_, err := g.db.CrateRateLimiter(ctx, params)
-	return err
+func (g *Golim) createRateLimiter(ctx context.Context, limiter entity.Limiter) error {
+	return g.DB.CrateRateLimiter(ctx, limiter)
 }
 
-func (g *golim) removeRateLimiter(ctx context.Context) error {
-	return g.db.DeleteRateLimiter(ctx, int64(g.limiter.id.(int)))
+func (g *Golim) removeRateLimiter(ctx context.Context, ID int64) error {
+	return g.DB.DeleteRateLimiter(ctx, ID)
 }
 
-func (g *golim) ExecCMD(ctx context.Context) (interface{}, error) {
+func (g *Golim) DO(ctx context.Context) (interface{}, error) {
 
 	if g.port != 0 {
 		go main.runCronTasks(ctx, g)
@@ -87,7 +110,7 @@ func (g *golim) ExecCMD(ctx context.Context) (interface{}, error) {
 	return nil, nil
 }
 
-func handleLimiterOperation(g *golim, ctx context.Context) (interface{}, error) {
+func handleLimiterOperation(g *GolimCLI, ctx context.Context) (interface{}, error) {
 	switch g.limiter.operation {
 	case main.createLimiterOperation:
 		return nil, g.createRateLimiter(ctx)
@@ -97,7 +120,7 @@ func handleLimiterOperation(g *golim, ctx context.Context) (interface{}, error) 
 	return nil, errors.New(main.unknownLimiterError)
 }
 
-func handleLimiterRoleOperation(g *golim, ctx context.Context) (interface{}, error) {
+func handleLimiterRoleOperation(g *GolimCLI, ctx context.Context) (interface{}, error) {
 	switch g.limiterRole.operation {
 	case main.addRoleOperation:
 		return nil, g.addRole(ctx)
@@ -110,7 +133,7 @@ func handleLimiterRoleOperation(g *golim, ctx context.Context) (interface{}, err
 }
 
 func NewLimiter(db *sql.DB, cache *store.Cache, logger *log.Logger) *Golim {
-	return &domain.Golim{
+	return &domain.GolimCLI{
 		Logger: logger,
 		Store: Store{
 			db:    role2.New(db),
@@ -119,7 +142,7 @@ func NewLimiter(db *sql.DB, cache *store.Cache, logger *log.Logger) *Golim {
 	}
 }
 
-func (g *golim) createHelpCMD() *ff.Command {
+func (g *GolimCLI) createHelpCMD() *ff.Command {
 	helpFlags := ff.NewFlagSet("help")
 	return &ff.Command{
 		Name:      "help",
@@ -133,7 +156,7 @@ func (g *golim) createHelpCMD() *ff.Command {
 	}
 }
 
-func (g *golim) createRunCMD() *ff.Command {
+func (g *GolimCLI) createRunCMD() *ff.Command {
 	runFlags := ff.NewFlagSet("run")
 	portNumber := runFlags.Int('p', "port", 8080, "The name of the golim to initialize")
 	return &ff.Command{
@@ -152,7 +175,7 @@ func (g *golim) createRunCMD() *ff.Command {
 	}
 }
 
-func (g *golim) createInitCMD() *ff.Command {
+func (g *GolimCLI) createInitCMD() *ff.Command {
 	initFlags := ff.NewFlagSet("init")
 	limiterName := initFlags.String('n', "name", "", "The name of the golim to initialize")
 	destinationAddress := initFlags.String('d', "destination", "", "The name of the golim to initialize")
@@ -180,7 +203,7 @@ func (g *golim) createInitCMD() *ff.Command {
 	}
 }
 
-func (g *golim) addRemoveLimiterCMD() *ff.Command {
+func (g *GolimCLI) addRemoveLimiterCMD() *ff.Command {
 	removeFlags := ff.NewFlagSet("removel")
 	limiterID := removeFlags.Int('l', "limiter", 0, "The name of the golim to initialize")
 	return &ff.Command{
@@ -204,7 +227,7 @@ func (g *golim) addRemoveLimiterCMD() *ff.Command {
 	}
 }
 
-func (g *golim) createAddCMD() *ff.Command {
+func (g *GolimCLI) createAddCMD() *ff.Command {
 	addFlags := ff.NewFlagSet("add")
 	limiterID := addFlags.Int('l', "limiter", 0, "The limiter id")
 	endpoint := addFlags.String('e', "endpoint", "", "The endpoint address")
@@ -239,7 +262,7 @@ func (g *golim) createAddCMD() *ff.Command {
 	}
 }
 
-func (g *golim) createRemoveCMD() *ff.Command {
+func (g *GolimCLI) createRemoveCMD() *ff.Command {
 	removeFlags := ff.NewFlagSet("remove")
 	roleID := removeFlags.Int('i', "role_id", 0, "the role id")
 
@@ -264,7 +287,7 @@ func (g *golim) createRemoveCMD() *ff.Command {
 	}
 }
 
-func (g *golim) createGetRolesCMD() *ff.Command {
+func (g *GolimCLI) createGetRolesCMD() *ff.Command {
 	getFlags := ff.NewFlagSet("get")
 	limiterID := getFlags.Int('l', "limiter", 0, "The limiter id")
 
@@ -291,7 +314,7 @@ func (g *golim) createGetRolesCMD() *ff.Command {
 	}
 }
 
-func toCreateRoleParam(g *golim) role2.CreateRoleParams {
+func toCreateRoleParam(g *GolimCLI) role2.CreateRoleParams {
 	return role2.CreateRoleParams{
 		Endpoint:       g.limiterRole.endPoint,
 		Operation:      g.limiterRole.method,
@@ -302,16 +325,9 @@ func toCreateRoleParam(g *golim) role2.CreateRoleParams {
 	}
 }
 
-func toCreateRateLimiter(g *golim) role2.CrateRateLimiterParams {
+func toCreateRateLimiter(g *GolimCLI) role2.CrateRateLimiterParams {
 	return role2.CrateRateLimiterParams{
 		Name:        g.limiter.name,
 		Destination: g.limiter.destination,
-	}
-}
-
-func toGetRole(g *golim) role2.GetRoleParams {
-	return role2.GetRoleParams{
-		Endpoint:  g.limiterRole.endPoint,
-		Operation: g.limiterRole.operation,
 	}
 }
