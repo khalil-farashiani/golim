@@ -11,8 +11,10 @@ type Cache interface {
 
 	//todo: fix params
 
-	SetLimiter(context.Context, *entity.Role, *entity.Role)
-	GetLimiter(context.Context, entity.Role) *entity.Role
-	SetUserRequestCap(context.Context, string, entity.Role)
-	getUserRequestCap(context.Context, string, entity.Role) int64
+	SetLimiter(context.Context, entity.RoleLimiter)
+	SetRole(context.Context, entity.Role)
+	GetLimiter(context.Context, int64) *entity.RoleLimiter
+	GetRole(context.Context, int64) *entity.Role
+	SetUserRequestCap(context.Context, string, entity.RoleLimiter)
+	getUserRequestCap(context.Context, string, entity.RoleLimiter) int64
 }

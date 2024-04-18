@@ -11,6 +11,6 @@ type DBStore interface {
 	DeleteRateLimiter(context.Context, int64) error
 	DeleteRole(context.Context, int64) error
 	GetRateLimiters(context.Context) ([]entity.Limiter, error)
-	GetRole(context.Context, entity.Role) (entity.Role, error)
+	GetRole(context.Context, int64) (entity.Role, error)
 	GetRoles(context.Context, int64) ([]entity.Role, error)
 }
